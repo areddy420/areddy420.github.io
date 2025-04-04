@@ -1,33 +1,45 @@
+const sectionCache = {};
+
+function loadAllSections() {
+    const sectionNames = [
+        "about_me",
+        "professional_summary",
+        "professional_experience",
+        "skills",
+        "education",
+        "ash_bookshelf",
+        "creative_persuits",
+        "contact_me"
+    ];
+
+    sectionNames.forEach(name => {
+        fetch(`sections/${name}.html`)
+            .then(response => response.text())
+            .then(data => {
+                sectionCache[name] = data;
+                const container = document.getElementById(`${name}-container`);
+                if (container) {
+                    container.innerHTML = data;
+                }
+            });
+    });
+}
 
 function loadSection(sectionName) {
-    // Update the URL using history.pushState() without reloading the page
     history.pushState(null, null, `#${sectionName}`);
 
-    // Check if sectionName is a real anchor (e.g. ecomm-search) instead of a full section
-    const anchor = document.getElementById(sectionName);
-    if (anchor) {
-        // It's just an anchor — scroll and expand if collapsible
-        anchor.scrollIntoView({ behavior: 'smooth' });
+    document.querySelectorAll('.section-wrapper').forEach(div => {
+        div.style.display = "none";
+    });
 
-        const button = anchor.querySelector('.collapsible');
-        const content = anchor.querySelector('.collapsible-content');
-
-        if (button && content && content.style.display !== 'block') {
-            button.classList.add('active-collapsible');
-            content.style.display = 'block';
-        }
-        return;
+    const container = document.getElementById(`${sectionName}-container`);
+    if (container) {
+        container.style.display = "block";
+        attachCollapsibleEventListeners(sectionName);
+        container.scrollIntoView({ behavior: "smooth" });
+    } else {
+        console.error(`No container found for section ${sectionName}`);
     }
-
-    // Else fetch section dynamically
-    fetch(`sections/${sectionName}.html`)
-        .then(response => response.text())
-        .then(data => {
-            document.getElementById('content-container').innerHTML = data;
-            updateActiveTab(sectionName);
-            attachCollapsibleEventListeners(sectionName);
-        })
-        .catch(error => console.error('Error loading section:', error));
 }
 
 function updateActiveTab(sectionName) {
@@ -41,18 +53,10 @@ function updateActiveTab(sectionName) {
 }
 
 function attachCollapsibleEventListeners(sectionName) {
-    // Define an array of sections that should have their collapsibles collapsed by default
-    const collapsibleSections = ['professional_experience', 'creative_persuits', 'ash_bookshelf'];
-
-    const collapsibleButtons = document.querySelectorAll('.collapsible');
+    const collapsibleButtons = document.querySelectorAll(`#${sectionName}-container .collapsible`);
     collapsibleButtons.forEach(button => {
         const content = button.nextElementSibling;
-
-        if (collapsibleSections.includes(sectionName)) {
-            content.style.display = "none"; // Set initial state to 'none'
-        }
-
-        // Add click event listener to toggle collapse
+        content.style.display = "none";
         button.addEventListener('click', function () {
             this.classList.toggle('active-collapsible');
             content.style.display = (content.style.display === "none" || content.style.display === "") ? "block" : "none";
@@ -60,14 +64,13 @@ function attachCollapsibleEventListeners(sectionName) {
     });
 }
 
-// Handle back and forward browser buttons
 window.addEventListener('popstate', function() {
     const sectionName = location.hash ? location.hash.substring(1) : 'professional_summary';
     loadSection(sectionName);
 });
 
-// Initial load based on the URL hash
 document.addEventListener('DOMContentLoaded', () => {
+    loadAllSections();
     const sectionName = location.hash ? location.hash.substring(1) : 'professional_summary';
-    loadSection(sectionName);
+    setTimeout(() => loadSection(sectionName), 300);
 });
